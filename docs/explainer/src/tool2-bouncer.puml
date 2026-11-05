@@ -1,0 +1,21 @@
+@startuml tool2-bouncer
+title Tool 2 - The bouncer (MCP gateway)
+
+skinparam shadowing false
+left to right direction
+
+rectangle "AI AGENT\nwants to use\na tool" as A #E3F2FD
+rectangle "THE BOUNCER\nAre you allowed?\nRight inputs?\nNot risky?" as B #BBDEFB
+rectangle "TOOL\n(send email,\nquery DB, ...)" as T #E3F2FD
+
+A -right-> B : "may I use this tool?"
+B -right-> T : "YES - here is a pass\n(expires in <60 sec,\nthis call only)"
+B -down-> A : "NO - blocked,\nhere is why"
+
+note bottom of B
+  Every single tool call is checked on its own.
+  The pass is one-time and short-lived, so a
+  leaked pass is useless a minute later.
+  Every decision is written to a tamper-proof log.
+end note
+@enduml

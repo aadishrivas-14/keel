@@ -1,0 +1,21 @@
+@startuml tool3-privacy-shield
+title Tool 3 - Privacy shield (PII proxy)
+
+skinparam shadowing false
+skinparam ArrowColor #6A1B9A
+
+rectangle "YOUR AGENT\n--\n'Email Rahul,\nPAN ABCDE1234F'" as A #F3E5F5
+rectangle "PRIVACY SHIELD\n--\nswaps real data\nfor fake placeholders\n(and back again)" as P #E1BEE7
+cloud "ChatGPT / Claude\n--\nsees only\n'<NAME_1>, <PAN_2>'" as L #F3E5F5
+
+A -down->  P : "1. real personal data goes in"
+P -down->  L : "2. only safe placeholders leave"
+L -up->  P : "3. reply comes back"
+P -up->  A : "4. real values put back in"
+
+note right of P
+  Works for Indian IDs (Aadhaar, PAN, UPI, GSTIN)
+  and names/addresses in English, Hindi, Hinglish.
+  The outside AI never sees the real data.
+end note
+@enduml

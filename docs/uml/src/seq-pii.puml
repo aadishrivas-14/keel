@@ -1,0 +1,33 @@
+@startuml seq-pii
+title PII proxy: redact -> LLM -> restore (streaming)
+
+skinparam shadowing false
+participant "Caller\n(OpenAI SDK)" as C
+participant "PII proxy" as P
+participant "Rule detectors\n(regex+checksum)" as R
+participant "NER model\n(Indic)" as N
+database "Vault\n(AES-256-GCM)" as V
+participant "Consent store" as CS
+participant "External LLM" as LLM
+
+C -> P : prompt (base URL swapped)
+P -> CS : purpose/consent check
+alt no matching consent
+  CS --> P : none
+  P --> C : refused (reason)
+else consent ok
+  P -> P : normalise (Unicode, digit forms)
+  P -> R : detect structured IDs
+  P -> N : detect names/addresses
+  P -> P : merge overlapping spans
+  loop each span
+    P -> V : HMAC token; store ciphertext (reversible)
+  end
+  P -> LLM : redacted prompt (<PAN_7f3a> ...)
+  LLM --> P : streamed response (tokens)
+  loop each chunk
+    P -> V : resolve tokens (buffer split boundaries)
+    P --> C : restored chunk
+  end
+end
+@enduml

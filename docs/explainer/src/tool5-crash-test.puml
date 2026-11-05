@@ -1,0 +1,20 @@
+@startuml tool5-crash-test
+title Tool 5 - Crash-test dummy (chaos harness)
+
+skinparam shadowing false
+left to right direction
+
+rectangle "CRASH-TEST DUMMY\n--\nbreaks things\non purpose" as H #FFEBEE
+rectangle "YOUR AGENT\n--\ntries to finish\nits task anyway" as A #FFCDD2
+rectangle "SCORECARD\n--\nDid it recover?\nAny duplicates?\nAny unsafe actions?\nExtra cost?" as S #FFEBEE
+
+H -right-> A : tool timeouts, garbage\nreplies, fake outages,\ntricky instructions
+A -right-> S : measured result,\nnot a guess
+
+note bottom of A
+  Faults are injected at the bouncer and the
+  privacy shield, so ANY agent can be tested
+  without changing its code. Runs the same way
+  every time, so results are comparable.
+end note
+@enduml

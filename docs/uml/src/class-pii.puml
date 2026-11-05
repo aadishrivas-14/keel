@@ -1,0 +1,65 @@
+@startuml class-pii
+title [2] DPDP PII proxy — domain model
+
+skinparam shadowing false
+hide empty members
+
+class RedactionRequest {
+  +tenant_id : string
+  +prompt : text
+  +purpose : string
+}
+
+class DetectedSpan {
+  +start : int
+  +end : int
+  +type : PiiType
+  +source : rule|ner
+}
+
+enum PiiType {
+  AADHAAR
+  PAN
+  GSTIN
+  UPI
+  IFSC
+  MOBILE
+  VOTER_ID
+  PASSPORT
+  VEHICLE_REG
+  NAME
+  ADDRESS
+}
+
+class Token {
+  +value : "<PAN_7f3a>"
+  +type : PiiType
+  +hmac : string
+}
+
+class VaultEntry {
+  +tenant_id : string
+  +token : string
+  +ciphertext : bytes  'AES-256-GCM
+  +data_principal : string
+}
+
+class ConsentRecord {
+  +data_principal : string
+  +purpose : string
+  +granted : bool
+}
+
+class TenantKey {
+  +tenant_id : string
+  +data_key : wrapped
+  +master_key_ref : string
+}
+
+RedactionRequest "1" o-- "many" DetectedSpan
+DetectedSpan --> PiiType
+DetectedSpan --> Token : tokenised to
+Token --> VaultEntry : persisted (reversible)
+VaultEntry --> TenantKey : encrypted under
+RedactionRequest --> ConsentRecord : purpose check
+@enduml

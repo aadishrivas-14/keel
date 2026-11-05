@@ -1,0 +1,56 @@
+@startuml class-chaos
+title [B] Chaos harness — domain model
+
+skinparam shadowing false
+hide empty members
+
+class Scenario {
+  +name : string
+  +seed : int
+  +faults : FaultSpec[]
+}
+
+class FaultSpec {
+  +type : FaultType
+  +target : gateway|llm_proxy
+  +trigger : step|probability
+}
+enum FaultType {
+  TOOL_TIMEOUT
+  HTTP_429
+  HTTP_500
+  MALFORMED_JSON
+  TRUNCATED_OUTPUT
+  SCHEMA_BREAK
+  LATENCY_SPIKE
+  INJECTED_INSTRUCTION
+  CONTEXT_FLOOD
+  MODEL_OUTAGE
+}
+
+class AgentAdapter {
+  +framework : string  'LangGraph|OpenAI SDK|plain|Keel
+  +run(task) : RunResult
+}
+
+class RunResult {
+  +success : bool
+  +recovered : bool
+  +duplicates : int
+  +unsafe_actions : int
+  +extra_tokens : int
+  +cost : float
+}
+
+class Report {
+  +scenarios : Scenario[]
+  +results : RunResult[]
+  +comparison_table : md
+}
+
+Scenario "1" o-- "many" FaultSpec
+FaultSpec --> FaultType
+AgentAdapter --> RunResult : produces
+Scenario --> AgentAdapter : driven against
+RunResult --> Report : aggregated into
+@enduml

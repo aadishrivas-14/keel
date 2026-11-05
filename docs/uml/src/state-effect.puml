@@ -1,0 +1,13 @@
+@startuml state-effect
+title Effects ledger entry — exactly-once intent
+
+skinparam shadowing false
+[*] --> Intent : write INTENT before tool call
+Intent --> Done : side effect confirmed
+Intent --> Unknown : crash mid-call,\nno idempotency support
+Intent --> Done : retry w/ Idempotency-Key\n(upstream dedup)
+Unknown --> Done : compensation / manual approval
+Unknown --> Failed : give up
+Done --> [*] : stored result returned on retry
+Failed --> [*]
+@enduml

@@ -1,0 +1,17 @@
+@startuml state-run
+title Run lifecycle
+
+skinparam shadowing false
+[*] --> Running : RunStarted
+Running --> Running : StepCompleted
+Running --> AwaitingSignal : AwaitingSignal\n(approval / HITL)
+AwaitingSignal --> Running : signal (approve/deny/resume)
+Running --> Completed : RunCompleted
+Running --> Failed : RunFailed
+Running --> Cancelled : cancel command
+AwaitingSignal --> Cancelled : cancel command
+Running --> Running : worker death\n(resume < 5 s, replay log)
+Completed --> [*]
+Failed --> [*]
+Cancelled --> [*]
+@enduml

@@ -1,0 +1,56 @@
+@startuml class-drift
+title [4] Schema-drift guard — domain model
+
+skinparam shadowing false
+hide empty members
+
+class TopicSample {
+  +topic : string
+  +window : duration
+  +messages_seen : int
+}
+
+class FieldStat {
+  +field_path : string
+  +types_seen : map<type,count>
+  +presence : float  '>99.9% = required
+}
+
+class InferredSchema {
+  +topic : string
+  +fields : FieldStat[]
+}
+
+class SchemaChange {
+  +field_path : string
+  +kind : ChangeKind
+  +from : type
+  +to : type
+}
+enum ChangeKind {
+  BREAKING
+  ADDITIVE
+}
+
+class ConsumerRef {
+  +service : string
+  +repo : string
+  +file : string
+  +line : int
+  +field_path : string
+}
+
+class DriftAlert {
+  +topic : string
+  +change : SchemaChange
+  +consumers : ConsumerRef[]
+  +explanation : text  'LLM-written
+}
+
+TopicSample "1" o-- "many" FieldStat
+TopicSample --> InferredSchema : inferred (rolling)
+InferredSchema --> SchemaChange : diff vs new window
+SchemaChange --> ConsumerRef : mapped (tree-sitter index)
+SchemaChange --> DriftAlert
+ConsumerRef --> DriftAlert
+@enduml

@@ -1,0 +1,71 @@
+@startuml class-gateway
+title [1] MCP gateway — domain model
+
+skinparam shadowing false
+hide empty members
+
+class ToolCallRequest {
+  +agent_id : string
+  +end_user : string
+  +tool : string
+  +args : json
+  +data_labels : string[]
+}
+
+class ToolManifest {
+  +tool : string
+  +definition_hash : string
+  +signature : bytes
+  +approver : string
+  +version : int
+}
+
+class Policy {
+  +id : string
+  +cel_expr : string
+  +source : git_ref
+}
+
+class PolicyDecision {
+  +allow : bool
+  +reason : string
+  +requires_approval : bool
+}
+
+class ScopedToken {
+  +jti : UUID
+  +audience : string
+  +tool : string
+  +arg_hash : string
+  +ttl : < 60s
+  +signed_with : kid
+}
+
+class SessionTaint {
+  +session_id : string
+  +tainted : bool
+  +source_tool : string
+}
+
+class AuditRecord {
+  +seq : int
+  +prev_hash : string
+  +this_hash : string
+  +decision : PolicyDecision
+  +ts : ts
+}
+
+class JWKS {
+  +keys : key[]
+  +rotates_every : 24h
+}
+
+ToolCallRequest --> ToolManifest : pinned-hash check
+ToolCallRequest --> Policy : evaluated by (CEL)
+Policy --> PolicyDecision : yields
+PolicyDecision --> ScopedToken : mint if allow
+ScopedToken --> JWKS : verifiable via
+ToolCallRequest --> SessionTaint : updates
+AuditRecord --> AuditRecord : prev_hash chain
+PolicyDecision --> AuditRecord : recorded in
+@enduml

@@ -1,0 +1,16 @@
+@startuml state-taint
+title Gateway session taint
+
+skinparam shadowing false
+[*] --> Clean
+Clean --> Tainted : untrusted tool output read
+Clean --> Clean : trusted output
+Tainted --> Tainted : further reads
+state "High-risk tool requested" as HR
+Tainted --> HR : e.g. send_email
+HR --> Approved : approval signal granted
+HR --> Blocked : approval denied
+Approved --> Tainted : call proceeds
+Blocked --> Tainted : call refused
+Clean --> LowRiskAllowed : high-risk w/o taint\nallowed directly
+@enduml

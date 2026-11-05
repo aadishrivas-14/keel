@@ -1,0 +1,49 @@
+@startuml platform-deployment
+title Keel — deployment (local + AWS demo)
+
+skinparam shadowing false
+
+node "Developer laptop (local)" as Laptop {
+  node "Docker Compose" as Compose {
+    artifact "runtime" as rt
+    artifact "gateway" as gw
+    artifact "pii-proxy" as pp
+    artifact "drift-guard" as dg
+    artifact "harness" as ha
+    artifact "Redpanda (Kafka)" as rp
+    database "SQLite files" as sq
+  }
+}
+
+cloud "AWS demo env (Terraform)" as AWS {
+  node "ECS Fargate / EKS" as ECS {
+    artifact "runtime task" as rt2
+    artifact "gateway task" as gw2
+    artifact "pii-proxy task" as pp2
+    artifact "drift-guard task" as dg2
+  }
+  queue "Kafka-compatible broker\n(single self-run, demo)" as msk
+  database "SQLite -> Postgres\n(on measured trigger, ADR-006)" as pg
+  component "Secrets Manager" as sm
+  component "Budget alarm\nUS$20/month" as budget
+}
+
+node "Observability" as Obs {
+  component "OpenTelemetry\n(one trace per run)" as otel
+  component "Prometheus\nmetrics" as prom
+}
+
+Compose --> Obs
+ECS --> msk
+ECS --> pg
+ECS --> sm
+ECS --> Obs
+AWS --> budget
+
+note right of pg
+  ADR-006: SQLite first.
+  Move to Postgres when workers
+  span >1 host (AWS kill test) or
+  DBOS engine is chosen.
+end note
+@enduml

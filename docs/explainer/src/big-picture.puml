@@ -1,0 +1,31 @@
+@startuml big-picture
+title Keel in one picture:  your agent, with 5 safety guards around it
+
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #FEFEFE
+  BorderColor #555555
+  roundCorner 15
+}
+skinparam ArrowColor #444444
+
+rectangle "YOUR AI AGENT\n(LangGraph, or any loop)" as AGENT #LightYellow
+
+rectangle "1. NEVER LOSE WORK\n(durable runtime)\n--\nCrashes? Resume where\nit stopped. No double\nemails or payments." as G1 #E8F5E9
+rectangle "2. THE BOUNCER\n(MCP gateway)\n--\nChecks every tool call.\nGives a one-time pass\nthat expires fast." as G2 #E3F2FD
+rectangle "3. PRIVACY SHIELD\n(PII proxy)\n--\nHides personal data\nbefore it reaches\nChatGPT / Claude." as G3 #F3E5F5
+rectangle "4. EARLY WARNING\n(schema-drift guard)\n--\nSpots data-format\nchanges before they\nbreak your code." as G4 #FFF3E0
+rectangle "5. CRASH-TEST DUMMY\n(chaos harness)\n--\nBreaks things on purpose\nto measure how well\nthe agent copes." as G5 #FFEBEE
+
+AGENT -up- G1
+AGENT -right- G2
+AGENT -down- G3
+AGENT -left- G4
+AGENT -up- G5
+
+legend bottom
+  All 5 are separate tools that can be used alone,
+  but they share one message bus (Kafka) so they
+  work together as one platform.
+endlegend
+@enduml

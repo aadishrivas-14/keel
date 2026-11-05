@@ -1,0 +1,19 @@
+@startuml tool4-early-warning
+title Tool 4 - Early warning (schema-drift guard)
+
+skinparam shadowing false
+left to right direction
+
+queue "DATA STREAM\n(Kafka topic)\n--\nfield 'price'\njust became text\ninstead of number" as K #FFF3E0
+rectangle "EARLY WARNING\n--\nwatches quietly,\nlearns the normal\nshape of the data" as W #FFE0B2
+rectangle "YOU\n--\n'Heads up: topic X changed.\nIt will break file\norders.py line 42.'" as U #FFF3E0
+
+K -right-> W : reads a tiny sample
+W -right-> U : alert in under a minute
+
+note bottom of W
+  It does not just say 'something changed'.
+  It names the exact service and line of code
+  that will break - before it actually breaks.
+end note
+@enduml

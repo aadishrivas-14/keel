@@ -1,0 +1,38 @@
+@startuml seq-durable-run
+title Durable run: step persistence + crash recovery + effects ledger
+
+skinparam shadowing false
+actor Agent
+participant SDK
+participant "Runtime\n(worker W1)" as W1
+participant "Runtime\n(worker W2)" as W2
+queue "Kafka\nruns.events" as K
+database "Ledger\n(SQLite)" as L
+participant "MCP gateway" as GW
+participant "Email tool" as Tool
+
+Agent -> SDK : run(task)
+SDK -> W1 : start run
+W1 -> K : RunStarted, StepScheduled
+W1 -> K : ModelCallCompleted (recorded)
+W1 -> L : INTENT key=hash(run,step,send_email,args)
+W1 -> GW : tool call send_email
+GW -> Tool : forward + Idempotency-Key
+note over W1 : worker W1 dies before DONE written
+... rebalance (< 5 s) ...
+K -> W2 : partition reassigned
+W2 -> K : replay events (model NOT re-called)
+W2 -> L : lookup key
+alt DONE exists
+  L --> W2 : stored result
+else INTENT only, tool supports idempotency
+  W2 -> GW : retry with same Idempotency-Key
+  GW -> Tool : dedup -> no duplicate send
+  W2 -> L : DONE
+else INTENT only, no idempotency support
+  W2 -> L : mark UNKNOWN
+  W2 -> K : AwaitingSignal (compensation/approval)
+end
+W2 -> K : StepCompleted, RunCompleted
+W2 --> SDK : result
+@enduml

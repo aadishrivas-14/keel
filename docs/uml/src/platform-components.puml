@@ -1,0 +1,54 @@
+@startuml platform-components
+title Keel — platform component diagram
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+actor "Agent code\n(LangGraph / plain loop)" as Agent
+
+package "Keel platform" {
+
+  component "Python SDK\n(decorator wrapper)" as SDK
+
+  component "[A] Durable runtime\n(engine: Restate/DBOS)" as Runtime
+  component "[1] Zero-trust\nMCP gateway (Go)" as Gateway
+  component "[2] DPDP PII proxy\n(FastAPI)" as PII
+  component "[4] Schema-drift guard\n(Go sampler + Py explainer)" as Drift
+  component "[B] Chaos harness\n(Python)" as Chaos
+
+  queue "Kafka / Redpanda\nruns.*, tools.*, audit" as Kafka
+
+  database "SQLite stores\nledger | manifests\nconsent | PII vault" as Store
+}
+
+cloud "External LLM\n(OpenAI / Anthropic)" as LLM
+component "Upstream MCP\ntool servers" as Tools
+
+Agent --> SDK
+SDK --> Runtime : start/get/cancel/list\n(HTTP/gRPC)
+
+Runtime --> Kafka : persist step events
+Runtime --> PII : model calls
+Runtime --> Gateway : tool calls
+Runtime --> Store : snapshots, effects ledger
+
+PII --> LLM : redacted prompt
+PII --> Store : PII vault (AES-256-GCM)
+
+Gateway --> Tools : forward + per-call JWT
+Gateway --> Store : manifests
+Gateway --> Kafka : hash-chained audit
+Gateway ..> Runtime : approval signals
+
+Drift --> Kafka : read-only sample
+Drift --> LLM : explain diff (Py explainer)
+
+Chaos ..> Gateway : fault hook (per tool call)
+Chaos ..> PII : fault hook (per model call)
+Chaos --> Runtime : drive tasks / adapters
+
+note bottom of Chaos
+  Dashed = fault injection, no
+  production data path of its own
+end note
+@enduml

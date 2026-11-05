@@ -1,0 +1,45 @@
+@startuml seq-gateway-call
+title MCP gateway: per-call policy, scoped token, taint, audit
+
+skinparam shadowing false
+participant "Runtime" as RT
+participant "Gateway" as GW
+participant "Policy (CEL)" as POL
+participant "Manifest store" as MAN
+participant "JWKS signer" as JW
+participant "Upstream tool" as UP
+queue "Kafka audit" as AUD
+
+RT -> GW : tool call (agent, user, tool, args, labels)
+GW -> MAN : check definition hash
+alt hash changed
+  MAN --> GW : mismatch
+  GW -> AUD : audit DENY (re-approval needed)
+  GW --> RT : blocked (show diff)
+else hash pinned
+  GW -> POL : evaluate per-call policy
+  alt deny
+    POL --> GW : deny + reason
+    GW -> AUD : audit DENY
+    GW --> RT : denied (fail closed)
+  else allow, needs approval (tainted + high-risk)
+    POL --> GW : allow, requires_approval
+    GW --> RT : approval signal
+    RT --> GW : approved
+    GW -> JW : mint scoped JWT (ttl<60s, arg_hash)
+    GW -> UP : forward + token
+    UP --> GW : response
+    GW -> GW : scan output, update taint
+    GW -> AUD : hash-chained record
+    GW --> RT : result
+  else allow
+    POL --> GW : allow
+    GW -> JW : mint scoped JWT
+    GW -> UP : forward + token
+    UP --> GW : response
+    GW -> GW : scan output, update taint
+    GW -> AUD : hash-chained record
+    GW --> RT : result
+  end
+end
+@enduml

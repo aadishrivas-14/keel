@@ -1,0 +1,29 @@
+@startuml seq-chaos
+title Chaos harness: seeded fault injection + scoring
+
+skinparam shadowing false
+participant "Harness" as H
+participant "AgentAdapter" as A
+participant "Gateway\nfault hook" as GW
+participant "LLM proxy\nfault hook" as LP
+participant "Mock services\n(count side effects)" as MS
+
+H -> H : load scenario (seed, faults)
+H -> GW : arm tool-call faults
+H -> LP : arm model-call faults
+H -> A : run task suite
+loop each step
+  A -> GW : tool call
+  alt fault armed
+    GW --> A : timeout / 429 / malformed / injected
+  else clean
+    GW -> MS : execute (counted)
+    MS --> GW : ok
+    GW --> A : result
+  end
+  A -> LP : model call
+  LP --> A : fault or completion
+end
+A --> H : RunResult (success, recovery, duplicates, unsafe, cost)
+H -> H : aggregate -> markdown report + comparison table
+@enduml

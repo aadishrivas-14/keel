@@ -1,0 +1,29 @@
+@startuml tool1-never-lose-work
+title Tool 1 - Never lose work (durable runtime)
+
+skinparam shadowing false
+skinparam ArrowColor #2E7D32
+
+rectangle "Step 1\nread order" as S1 #E8F5E9
+rectangle "Step 2\ncharge card" as S2 #E8F5E9
+rectangle "Step 3\nsend email" as S3 #E8F5E9
+
+S1 -right-> S2
+S2 -right-> S3
+
+rectangle "** CRASH ** after step 2" as C #FFCDD2
+
+S2 .down.> C
+
+rectangle "Without Keel:\nstart over -> card\ncharged TWICE" as BAD #FFCDD2
+rectangle "With Keel:\nresume at step 3 ->\ncard charged ONCE" as GOOD #C8E6C9
+
+C -down-> BAD
+C -down-> GOOD
+
+note bottom of GOOD
+  Keel remembers each finished step and
+  each real action, so a restart never
+  repeats something that already happened.
+end note
+@enduml

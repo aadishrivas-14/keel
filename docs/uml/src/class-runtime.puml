@@ -1,0 +1,79 @@
+@startuml class-runtime
+title [A] Durable runtime — domain model
+
+skinparam shadowing false
+hide empty members
+
+class Run {
+  +run_id : UUID
+  +status : RunStatus
+  +current_step : int
+  +created_at : ts
+  +snapshot_version : int
+}
+
+enum RunStatus {
+  RUNNING
+  AWAITING_SIGNAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+abstract class RunEvent {
+  +run_id : UUID
+  +seq : int
+  +ts : ts
+}
+class RunStarted
+class StepScheduled
+class ModelCallCompleted
+class ToolCallRequested
+class ToolCallCompleted
+class AwaitingSignal
+class StepCompleted
+class RunCompleted
+class RunFailed
+
+class Snapshot {
+  +run_id : UUID
+  +version : int
+  +state_blob : bytes
+  +at_seq : int
+}
+
+class EffectLedgerEntry {
+  +key : hash(run_id,step,tool,args)
+  +state : EffectState
+  +result : bytes
+  +idempotency_key : string
+}
+enum EffectState {
+  INTENT
+  DONE
+  UNKNOWN
+}
+
+class ToolCall {
+  +run_id : UUID
+  +step : int
+  +tool : string
+  +args : json
+  +idempotency_key : string
+}
+
+Run "1" o-- "many" RunEvent : ordered log
+Run "1" o-- "many" Snapshot : every 50 ev / 30 s
+RunEvent <|-- RunStarted
+RunEvent <|-- StepScheduled
+RunEvent <|-- ModelCallCompleted
+RunEvent <|-- ToolCallRequested
+RunEvent <|-- ToolCallCompleted
+RunEvent <|-- AwaitingSignal
+RunEvent <|-- StepCompleted
+RunEvent <|-- RunCompleted
+RunEvent <|-- RunFailed
+Run "1" -- "1" RunStatus
+ToolCall "1" -- "1" EffectLedgerEntry : guarded by
+EffectLedgerEntry -- EffectState
+@enduml

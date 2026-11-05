@@ -1,0 +1,27 @@
+@startuml seq-drift
+title Schema-drift guard: detect, map, explain
+
+skinparam shadowing false
+queue "Kafka topic\n(e.g. runs.events)" as K
+participant "Sampler (Go)\nread-only group" as S
+participant "Schema inferencer" as I
+participant "Code index\n(tree-sitter)" as CI
+participant "Explainer (Py)" as E
+participant "LLM" as LLM
+actor "On-call" as OC
+
+K -> S : sample messages (<1% throughput)
+S -> I : field stats over rolling window
+I -> I : infer schema (presence >99.9% = required)
+I -> I : diff vs previous window
+alt breaking change
+  I -> CI : lookup field_path across consumer repos
+  CI --> I : services + file:line
+  I -> E : diff + schemas + matched snippets
+  E -> LLM : write explanation (deterministic match, LLM only explains)
+  LLM --> E : alert text
+  E -> OC : alert (< 60 s) with services, locations, why
+else additive
+  I -> I : record, no alert
+end
+@enduml
